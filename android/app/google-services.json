@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "877415687199",
+    "project_id": "smart-assistive-navigation",
+    "storage_bucket": "smart-assistive-navigation.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877415687199:android:a2a1f9dd8f07ab80f3a12a",
+        "android_client_info": {
+          "package_name": "com.example.blind_assist_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCF7Fm7IcFN4QOEIryidC0Tm78Pq48BB8o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
