@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
+import '../live_location_map_screen.dart';
 
 class BlindDashboard extends StatefulWidget {
   const BlindDashboard({super.key});
@@ -250,6 +251,14 @@ class _BlindDashboardState extends State<BlindDashboard>
                                         Icons.location_on,
                                         Colors.green,
                                         'Share your location',
+                                        onTapAction: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const LiveLocationMapScreen(),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
@@ -301,7 +310,7 @@ class _BlindDashboardState extends State<BlindDashboard>
     );
   }
 
-  Widget _buildFeatureCard(String title, IconData icon, Color color, String description) {
+  Widget _buildFeatureCard(String title, IconData icon, Color color, String description, {VoidCallback? onTapAction}) {
     return TweenAnimationBuilder(
       duration: const Duration(milliseconds: 600),
       tween: Tween<double>(begin: 0, end: 1),
@@ -328,16 +337,20 @@ class _BlindDashboardState extends State<BlindDashboard>
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('$title feature coming soon!'),
-                      backgroundColor: color,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  if (onTapAction != null) {
+                    onTapAction();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$title feature coming soon!'),
+                        backgroundColor: color,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(12),

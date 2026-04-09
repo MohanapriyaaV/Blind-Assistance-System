@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
+import '../live_location_map_screen.dart';
 
 class CaretakerDashboard extends StatefulWidget {
   const CaretakerDashboard({super.key});
@@ -499,6 +500,13 @@ class _CaretakerDashboardState extends State<CaretakerDashboard>
                                                               shape: RoundedRectangleBorder(
                                                                 borderRadius: BorderRadius.circular(10),
                                                               ),
+                                                            ),
+                                                          );
+                                                          
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (context) => const LiveLocationMapScreen(),
                                                             ),
                                                           );
                                                         },
