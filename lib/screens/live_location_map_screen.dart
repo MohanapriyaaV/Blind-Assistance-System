@@ -6,7 +6,14 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart'; // Switched to geolocator
 
 class LiveLocationMapScreen extends StatefulWidget {
-  const LiveLocationMapScreen({Key? key}) : super(key: key);
+  final double? targetLatitude;
+  final double? targetLongitude;
+
+  const LiveLocationMapScreen({
+    Key? key,
+    this.targetLatitude,
+    this.targetLongitude,
+  }) : super(key: key);
 
   @override
   _LiveLocationMapScreenState createState() => _LiveLocationMapScreenState();
@@ -22,7 +29,25 @@ class _LiveLocationMapScreenState extends State<LiveLocationMapScreen> {
   @override
   void initState() {
     super.initState();
-    _initLocationService();
+    if (widget.targetLatitude != null && widget.targetLongitude != null) {
+      setState(() {
+        currentLocation = Position(
+          longitude: widget.targetLongitude!,
+          latitude: widget.targetLatitude!,
+          timestamp: DateTime.now(),
+          accuracy: 100.0,
+          altitude: 0.0,
+          altitudeAccuracy: 0.0,
+          heading: 0.0,
+          headingAccuracy: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+        );
+        _isLoading = false;
+      });
+    } else {
+      _initLocationService();
+    }
   }
 
   Future<void> _initLocationService() async {
@@ -105,10 +130,12 @@ class _LiveLocationMapScreenState extends State<LiveLocationMapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isStatic = widget.targetLatitude != null;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Live Location Navigation'),
-        backgroundColor: Colors.blueAccent,
+        title: Text(isStatic ? 'Alert Location Map' : 'Live Location Navigation'),
+        backgroundColor: isStatic ? Colors.redAccent : Colors.blueAccent,
+        foregroundColor: Colors.white,
       ),
       body: _buildMapBody(),
     );

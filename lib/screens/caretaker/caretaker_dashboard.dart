@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
 import '../live_location_map_screen.dart';
+import 'alerts_screen.dart';
 
 class CaretakerDashboard extends StatefulWidget {
   const CaretakerDashboard({super.key});
@@ -215,6 +216,60 @@ class _CaretakerDashboardState extends State<CaretakerDashboard>
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  void _showBlindUserOptions(BuildContext context, AppUser user) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Options for ${user.name}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
+                title: const Text('Alerts and Emergency', style: TextStyle(fontSize: 16)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AlertsScreen(blindUser: user),
+                    ),
+                  );
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.location_on, color: Colors.green, size: 30),
+                title: const Text('Live Location', style: TextStyle(fontSize: 16)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LiveLocationMapScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -492,23 +547,7 @@ class _CaretakerDashboardState extends State<CaretakerDashboard>
                                                           ),
                                                         ),
                                                         onTap: () {
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            SnackBar(
-                                                              content: Text('Selected ${user.name}'),
-                                                              backgroundColor: Colors.blue,
-                                                              behavior: SnackBarBehavior.floating,
-                                                              shape: RoundedRectangleBorder(
-                                                                borderRadius: BorderRadius.circular(10),
-                                                              ),
-                                                            ),
-                                                          );
-                                                          
-                                                          Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (context) => const LiveLocationMapScreen(),
-                                                            ),
-                                                          );
+                                                          _showBlindUserOptions(context, user);
                                                         },
                                                       ),
                                                     ),
