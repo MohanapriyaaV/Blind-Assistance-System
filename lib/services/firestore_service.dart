@@ -53,4 +53,20 @@ class FirestoreService {
     }
     return blindUsers;
   }
+
+  Future<void> sendEmergencyAlert(String blindUserId, double latitude, double longitude) async {
+    await _db.collection('alerts').add({
+      'blindUserId': blindUserId,
+      'latitude': latitude,
+      'longitude': longitude,
+      'timestamp': FieldValue.serverTimestamp(),
+      'status': 'active',
+    });
+  }
+
+  Stream<QuerySnapshot> getAlertsForBlindUser(String blindUserId) {
+    return _db.collection('alerts')
+        .where('blindUserId', isEqualTo: blindUserId)
+        .snapshots();
+  }
 }

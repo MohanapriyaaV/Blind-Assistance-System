@@ -4,6 +4,10 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
 import '../live_location_map_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class BlindDashboard extends StatefulWidget {
   const BlindDashboard({super.key});
@@ -18,9 +22,17 @@ class _BlindDashboardState extends State<BlindDashboard>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  late final DatabaseReference _dbRef;
+  final FlutterTts _flutterTts = FlutterTts();
+
   @override
   void initState() {
     super.initState();
+    _dbRef = FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: 'https://smart-assistive-navigation-default-rtdb.asia-southeast1.firebasedatabase.app',
+    ).ref();
+    _initTts();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -38,10 +50,158 @@ class _BlindDashboardState extends State<BlindDashboard>
     _animationController.forward();
   }
 
+  void _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
+    _flutterTts.stop();
     super.dispose();
+  }
+
+  Future<void> _showObjectDetectionDetails(BuildContext context) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final snapshot = await _dbRef.child('navigation').get();
+      Navigator.pop(context); // Close loading
+
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>?;
+        if (data != null) {
+          final object = data['object'] ?? 'Unknown object';
+          final direction = data['direction'] ?? 'No direction';
+          final command = data['command'] ?? 'No command';
+
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Detected Object Details'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Object: $object', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 8),
+                  Text('Direction: $direction'),
+                  const SizedBox(height: 8),
+                  Text('Command: $command'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        scaffoldMessenger.showSnackBar(const SnackBar(content: Text('No object detection data available.')));
+      }
+    } catch (e) {
+      if (Navigator.canPop(context)) Navigator.pop(context);
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _speakNavigationDetails(BuildContext context) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    try {
+      final snapshot = await _dbRef.child('navigation').get();
+
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>?;
+        if (data != null) {
+          final object = data['object'] ?? '';
+          final command = data['command'] ?? '';
+          
+          String textToSpeak = "Detected $object. $command";
+          await _flutterTts.speak(textToSpeak);
+        }
+      } else {
+        await _flutterTts.speak("No object data available.");
+      }
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _sendEmergencyAlert(BuildContext context) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    scaffoldMessenger.showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            ),
+            SizedBox(width: 16),
+            Text('Sending emergency alert...'),
+          ],
+        ),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 10),
+      ),
+    );
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) throw Exception('Location services disabled.');
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) throw Exception('Permission denied.');
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Permissions permanently denied.');
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirestoreService().sendEmergencyAlert(
+          user.uid,
+          position.latitude,
+          position.longitude,
+        );
+
+        scaffoldMessenger.hideCurrentSnackBar();
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: const Text('Emergency alert sent successfully!'),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      scaffoldMessenger.hideCurrentSnackBar();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to send alert: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -230,6 +390,7 @@ class _BlindDashboardState extends State<BlindDashboard>
                                         Icons.record_voice_over,
                                         Colors.blue,
                                         'Get audio directions',
+                                        onTapAction: () => _speakNavigationDetails(context),
                                       ),
                                       const SizedBox(width: 16),
                                       _buildFeatureCard(
@@ -237,6 +398,7 @@ class _BlindDashboardState extends State<BlindDashboard>
                                         Icons.camera_alt,
                                         Colors.orange,
                                         'Identify surroundings',
+                                        onTapAction: () => _showObjectDetectionDetails(context),
                                       ),
                                       const SizedBox(width: 16),
                                       _buildFeatureCard(
@@ -244,6 +406,7 @@ class _BlindDashboardState extends State<BlindDashboard>
                                         Icons.emergency,
                                         Colors.red,
                                         'Quick help access',
+                                        onTapAction: () => _sendEmergencyAlert(context),
                                       ),
                                       const SizedBox(width: 16),
                                       _buildFeatureCard(
